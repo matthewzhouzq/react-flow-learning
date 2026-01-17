@@ -9,21 +9,20 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import useUndo from 'use-undo';
 
 import EditableNode from './components/EditableNode';
 import LeftToolbar from './components/LeftToolbar';
 import NodeInspector from './components/NodeInspector';
 import EdgeInspector from './components/EdgeInspector';
 
-const nodeTypes = {
-  editable: EditableNode,
-};
+const nodeTypes = { editable: EditableNode };
 
 let idCounter = 3;
 
-export default function App() {
-  const [nodes, setNodes] = useState([
+const initialState = {
+  nodes: [
     {
       id: 'n1',
       type: 'editable',
@@ -36,57 +35,86 @@ export default function App() {
       position: { x: 0, y: 150 },
       data: { label: 'Node 2' },
     },
-  ]);
+  ],
+  edges: [{ id: 'n1-n2', source: 'n1', target: 'n2' }],
+};
 
-  const [edges, setEdges] = useState([
-    { id: 'n1-n2', source: 'n1', target: 'n2' },
-  ]);
+export default function App() {
+  const [state, { set, undo, redo, canUndo, canRedo }] = useUndo(initialState);
+  const { nodes, edges } = state.present;
 
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
 
+  // ⌨️ Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.key === 'z') undo();
+      if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z')))
+        redo();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   const onNodesChange = useCallback(
-    (changes) =>
-      setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
+    (changes) => {
+      // live preview, NO history
+      set(
+        {
+          nodes: applyNodeChanges(changes, nodes),
+          edges,
+        },
+        false // ❗ prevents microscopic undo
+      );
+    },
+    [nodes, edges]
   );
+ 
 
   const onEdgesChange = useCallback(
     (changes) =>
-      setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+      set({
+        nodes,
+        edges: applyEdgeChanges(changes, edges),
+      }),
+    [nodes, edges]
   );
 
   const onConnect = useCallback(
     (params) =>
-      setEdges((eds) => addEdge(params, eds)),
-    []
+      set({
+        nodes,
+        edges: addEdge(params, edges),
+      }),
+    [nodes, edges]
   );
 
   const onAddNode = () => {
     const id = `n${idCounter++}`;
-    setNodes((nds) => [
-      ...nds,
-      {
-        id,
-        type: 'editable',
-        position: { x: 200, y: 200 },
-        data: { label: `Node ${idCounter}` },
-      },
-    ]);
+    set({
+      nodes: [
+        ...nodes,
+        {
+          id,
+          type: 'editable',
+          position: { x: 200, y: 200 },
+          data: { label: `Node ${id}` },
+        },
+      ],
+      edges,
+    });
   };
 
   const onDeleteNode = () => {
     if (!selectedNodeId) return;
-    setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId));
-    setEdges((eds) =>
-      eds.filter(
+    set({
+      nodes: nodes.filter((n) => n.id !== selectedNodeId),
+      edges: edges.filter(
         (e) =>
-          e.source !== selectedNodeId &&
-          e.target !== selectedNodeId
-      )
-    );
+          e.source !== selectedNodeId && e.target !== selectedNodeId
+      ),
+    });
     setSelectedNodeId(null);
   };
 
@@ -95,42 +123,49 @@ export default function App() {
     [nodes, selectedNodeId]
   );
 
-  const updateSelectedNode = (updates) => {
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === selectedNodeId
-          ? { ...n, data: { ...n.data, ...updates } }
-          : n
-      )
-    );
-  };
-
   const selectedEdge = useMemo(
     () => edges.find((e) => e.id === selectedEdgeId),
     [edges, selectedEdgeId]
   );
 
-  const updateSelectedEdge = (updates) => {
-    setEdges((eds) =>
-      eds.map((e) =>
-        e.id === selectedEdgeId ? { ...e, ...updates } : e
-      )
-    );
+  const updateSelectedNode = (updates) => {
+    set({
+      nodes: nodes.map((n) =>
+        n.id === selectedNodeId
+          ? { ...n, data: { ...n.data, ...updates } }
+          : n
+      ),
+      edges,
+    });
   };
 
+  const updateSelectedEdge = (updates) => {
+    set({
+      nodes,
+      edges: edges.map((e) =>
+        e.id === selectedEdgeId
+          ? { ...e, ...updates }
+          : e
+      ),
+    });
+  };
 
   const nodesWithHandlers = nodes.map((n) => ({
     ...n,
     data: {
       ...n.data,
       onChange: (id, value) =>
-        setNodes((nds) =>
-          nds.map((node) =>
+        set({
+          nodes: nodes.map((node) =>
             node.id === id
-              ? { ...node, data: { ...node.data, label: value } }
+              ? {
+                  ...node,
+                  data: { ...node.data, label: value },
+                }
               : node
-          )
-        ),
+          ),
+          edges,
+        }),
     },
   }));
 
@@ -139,17 +174,11 @@ export default function App() {
       <LeftToolbar
         onAdd={onAddNode}
         onDelete={onDeleteNode}
+        onUndo={undo}
+        onRedo={redo}
         canDelete={!!selectedNodeId}
-      />
-
-      <NodeInspector
-        node={selectedNode}
-        updateNode={updateSelectedNode}
-      />
-
-      <EdgeInspector
-        edge={selectedEdge}
-        updateEdge={updateSelectedEdge}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
 
       <ReactFlow
@@ -169,11 +198,20 @@ export default function App() {
         }}
         fitView
       >
-
         <Controls />
         <MiniMap />
         <Background gap={12} size={1} />
       </ReactFlow>
+
+      <NodeInspector
+        node={selectedNode}
+        updateNode={updateSelectedNode}
+      />
+
+      <EdgeInspector
+        edge={selectedEdge}
+        updateEdge={updateSelectedEdge}
+      />
     </div>
   );
 }

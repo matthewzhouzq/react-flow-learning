@@ -1,16 +1,24 @@
+import { useEffect, useState } from 'react';
+
 export default function EdgeInspector({ edge, updateEdge }) {
   if (!edge) return null;
 
-  const stroke = edge.style?.stroke ?? '#000000';
-  const strokeWidth = edge.style?.strokeWidth ?? 2;
-  const isDotted = edge.style?.strokeDasharray === '5 5';
+  const [style, setStyle] = useState(edge.style ?? {});
+
+  useEffect(() => {
+    setStyle(edge.style ?? {});
+  }, [edge.id]);
+
+  const commit = (newStyle) => {
+    updateEdge({ style: newStyle });
+  };
 
   return (
     <div
       style={{
         position: 'absolute',
         right: 10,
-        top: 10,
+        top: 250,
         background: '#fff',
         padding: 10,
         borderRadius: 6,
@@ -27,15 +35,12 @@ export default function EdgeInspector({ edge, updateEdge }) {
       <label>Color</label>
       <input
         type="color"
-        value={stroke}
-        onChange={(e) =>
-          updateEdge({
-            style: {
-              ...edge.style,
-              stroke: e.target.value,
-            },
-          })
-        }
+        value={style.stroke ?? '#000000'}
+        onChange={(e) => {
+          const next = { ...style, stroke: e.target.value };
+          setStyle(next);
+          commit(next);
+        }}
       />
 
       <label>Thickness</label>
@@ -43,29 +48,30 @@ export default function EdgeInspector({ edge, updateEdge }) {
         type="number"
         min={1}
         max={10}
-        value={strokeWidth}
+        value={style.strokeWidth ?? 2}
         onChange={(e) =>
-          updateEdge({
-            style: {
-              ...edge.style,
-              strokeWidth: Number(e.target.value),
-            },
+          setStyle({
+            ...style,
+            strokeWidth: Number(e.target.value),
           })
         }
+        onBlur={() => commit(style)}
       />
 
       <label>Line Type</label>
       <select
-        value={isDotted ? 'dotted' : 'solid'}
-        onChange={(e) =>
-          updateEdge({
-            style: {
-              ...edge.style,
-              strokeDasharray:
-                e.target.value === 'dotted' ? '5 5' : undefined,
-            },
-          })
+        value={
+          style.strokeDasharray === '5 5' ? 'dotted' : 'solid'
         }
+        onChange={(e) => {
+          const next = {
+            ...style,
+            strokeDasharray:
+              e.target.value === 'dotted' ? '5 5' : undefined,
+          };
+          setStyle(next);
+          commit(next);
+        }}
       >
         <option value="solid">Solid</option>
         <option value="dotted">Dotted</option>

@@ -4,6 +4,8 @@ export default function LeftToolbar({
   onUndo,
   onRedo,
   canDelete,
+  canUndo,
+  canRedo,
 }) {
   return (
     <div
@@ -27,13 +29,18 @@ export default function LeftToolbar({
         🗑 Delete Node
       </button>
 
-      <button onClick={onUndo}>↩ Undo</button>
-      <button onClick={onRedo}>↪ Redo</button>
+      <button onClick={onUndo} disabled={!canUndo}>
+        ↩ Undo
+      </button>
+
+      <button onClick={onRedo} disabled={!canRedo}>
+        ↪ Redo
+      </button>
 
       <button
         onClick={() => {
           /*
-            🤖 AI SUGGESTION PLACEHOLDER 🤖
+            AI SUGGESTION PLACEHOLDER
 
             fetch('http://localhost:8000/ai/suggest', {
               method: 'POST',

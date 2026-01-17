@@ -1,5 +1,18 @@
+import { useEffect, useState } from 'react';
+
 export default function NodeInspector({ node, updateNode }) {
   if (!node) return null;
+
+  const [local, setLocal] = useState(node.data);
+
+  // sync when selecting a new node
+  useEffect(() => {
+    setLocal(node.data);
+  }, [node.id]);
+
+  const commit = (updates) => {
+    updateNode(updates); // ✅ pushes ONE undo step
+  };
 
   return (
     <div
@@ -22,29 +35,41 @@ export default function NodeInspector({ node, updateNode }) {
 
       <label>Label</label>
       <input
-        value={node.data.label ?? ''}
-        onChange={(e) => updateNode({ label: e.target.value })}
+        value={local.label ?? ''}
+        onChange={(e) =>
+          setLocal({ ...local, label: e.target.value })
+        }
+        onBlur={() => commit({ label: local.label })}
       />
 
       <label>Background</label>
       <input
         type="color"
-        value={node.data.color ?? '#ffffff'}
-        onChange={(e) => updateNode({ color: e.target.value })}
+        value={local.color ?? '#ffffff'}
+        onChange={(e) => {
+          setLocal({ ...local, color: e.target.value });
+          commit({ color: e.target.value });
+        }}
       />
 
       <label>Border</label>
       <input
         type="color"
-        value={node.data.borderColor ?? '#555555'}
-        onChange={(e) => updateNode({ borderColor: e.target.value })}
+        value={local.borderColor ?? '#555555'}
+        onChange={(e) => {
+          setLocal({ ...local, borderColor: e.target.value });
+          commit({ borderColor: e.target.value });
+        }}
       />
 
       <label>Text Color</label>
       <input
         type="color"
-        value={node.data.textColor ?? '#000000'}
-        onChange={(e) => updateNode({ textColor: e.target.value })}
+        value={local.textColor ?? '#000000'}
+        onChange={(e) => {
+          setLocal({ ...local, textColor: e.target.value });
+          commit({ textColor: e.target.value });
+        }}
       />
 
       <label>Font Size</label>
@@ -52,10 +77,11 @@ export default function NodeInspector({ node, updateNode }) {
         type="number"
         min={10}
         max={48}
-        value={node.data.fontSize ?? 14}
+        value={local.fontSize ?? 14}
         onChange={(e) =>
-          updateNode({ fontSize: Number(e.target.value) })
+          setLocal({ ...local, fontSize: Number(e.target.value) })
         }
+        onBlur={() => commit({ fontSize: local.fontSize })}
       />
     </div>
   );

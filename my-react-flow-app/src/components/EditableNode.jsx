@@ -31,16 +31,17 @@ export default function EditableNode({ id, data, selected }) {
             style={{ width: '100%' }}
           />
         ) : (
-          <div
+            <div
             style={{
-              color: data.textColor ?? '#000',
-              fontSize: data.fontSize ?? 14,
-              fontWeight: selected ? 'bold' : 'normal',
-              wordBreak: 'break-word',
+                color: data.textColor || '#000',
+                fontSize: data.fontSize || 12,
+                fontWeight: selected ? 'bold' : 'normal',
+                fontFamily: data.fontFamily || "'Quicksand', 'Google Sans Code', sans-serif",
             }}
-          >
+            >
             {data.label}
-          </div>
+            </div>
+
         )}
 
         <Handle type="source" position={Position.Bottom} />
