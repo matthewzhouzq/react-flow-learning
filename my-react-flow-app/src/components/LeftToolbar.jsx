@@ -21,6 +21,7 @@ export default function LeftToolbar({
         display: 'flex',
         flexDirection: 'column',
         gap: 8,
+        fontFamily: "'Quicksand', 'Google Sans Code', sans-serif", 
       }}
     >
       <button onClick={onAdd}>➕ Add Node</button>
@@ -50,7 +51,7 @@ export default function LeftToolbar({
           */
         }}
       >
-        🤖 AI Suggest
+        AI Suggest
       </button>
     </div>
   );

@@ -11,7 +11,7 @@ export default function NodeInspector({ node, updateNode }) {
   }, [node.id]);
 
   const commit = (updates) => {
-    updateNode(updates); // ✅ pushes ONE undo step
+    updateNode(updates);
   };
 
   return (
@@ -61,6 +61,16 @@ export default function NodeInspector({ node, updateNode }) {
           commit({ borderColor: e.target.value });
         }}
       />
+
+      <label>Border Width</label>
+      <input
+        type="number"
+        min={1}
+        max={10}
+        value={node.data.borderWidth ?? 1}
+        onChange={(e) => updateNode({ borderWidth: Number(e.target.value) })}
+      />
+
 
       <label>Text Color</label>
       <input

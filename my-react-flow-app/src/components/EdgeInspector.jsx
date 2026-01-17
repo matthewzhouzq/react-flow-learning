@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 
+const EDGE_DEFAULTS = {
+  stroke: '#000000',
+  strokeWidth: 2,
+  strokeDasharray: undefined,
+};
+
 export default function EdgeInspector({ edge, updateEdge }) {
   if (!edge) return null;
 
-  const [style, setStyle] = useState(edge.style ?? {});
+  const [style, setStyle] = useState(edge.style ?? EDGE_DEFAULTS);
 
   useEffect(() => {
-    setStyle(edge.style ?? {});
+    setStyle(edge.style ?? EDGE_DEFAULTS);
   }, [edge.id]);
 
   const commit = (newStyle) => {
@@ -35,7 +41,7 @@ export default function EdgeInspector({ edge, updateEdge }) {
       <label>Color</label>
       <input
         type="color"
-        value={style.stroke ?? '#000000'}
+        value={style.stroke ?? EDGE_DEFAULTS.stroke}
         onChange={(e) => {
           const next = { ...style, stroke: e.target.value };
           setStyle(next);
@@ -48,26 +54,20 @@ export default function EdgeInspector({ edge, updateEdge }) {
         type="number"
         min={1}
         max={10}
-        value={style.strokeWidth ?? 2}
+        value={style.strokeWidth ?? EDGE_DEFAULTS.strokeWidth}
         onChange={(e) =>
-          setStyle({
-            ...style,
-            strokeWidth: Number(e.target.value),
-          })
+          setStyle({ ...style, strokeWidth: Number(e.target.value) })
         }
         onBlur={() => commit(style)}
       />
 
       <label>Line Type</label>
       <select
-        value={
-          style.strokeDasharray === '5 5' ? 'dotted' : 'solid'
-        }
+        value={style.strokeDasharray === '5 5' ? 'dotted' : 'solid'}
         onChange={(e) => {
           const next = {
             ...style,
-            strokeDasharray:
-              e.target.value === 'dotted' ? '5 5' : undefined,
+            strokeDasharray: e.target.value === 'dotted' ? '5 5' : undefined,
           };
           setStyle(next);
           commit(next);

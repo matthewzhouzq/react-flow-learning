@@ -1,22 +1,46 @@
 import { Handle, Position, NodeResizer } from '@xyflow/react';
 import { useState } from 'react';
 
+const NODE_DEFAULTS = {
+  label: 'New Node',
+  color: '#ffffff',
+  borderColor: '#555555',
+  borderWidth: 2,
+  textColor: '#000000',
+  fontSize: 12,
+  fontFamily: "'Quicksand', 'Google Sans Code', sans-serif",
+};
+
 export default function EditableNode({ id, data, selected }) {
   const [editing, setEditing] = useState(false);
 
+  // Apply defaults
+  const label = data.label ?? NODE_DEFAULTS.label;
+  const color = data.color ?? NODE_DEFAULTS.color;
+  const borderColor = data.borderColor ?? NODE_DEFAULTS.borderColor;
+  const borderWidth = data.borderWidth ?? NODE_DEFAULTS.borderWidth;
+  const textColor = data.textColor ?? NODE_DEFAULTS.textColor;
+  const fontSize = data.fontSize ?? NODE_DEFAULTS.fontSize;
+  const fontFamily = data.fontFamily ?? NODE_DEFAULTS.fontFamily;
+
   return (
     <>
-      {selected && <NodeResizer minWidth={120} minHeight={50} />}
+      {selected && !editing && <NodeResizer minWidth={120} minHeight={50} />}
 
       <div
         style={{
           padding: 10,
           borderRadius: 6,
-          border: `2px solid ${data.borderColor ?? '#555'}`,
-          background: data.color ?? '#fff',
+          border: `${borderWidth}px solid ${borderColor}`,
+          background: color,
           width: '100%',
           height: '100%',
           boxSizing: 'border-box',
+          fontFamily: fontFamily,
+          boxShadow: selected && !editing ? '0 0 0 2px rgba(0,123,255,0.4)' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
         onDoubleClick={() => setEditing(true)}
       >
@@ -25,23 +49,35 @@ export default function EditableNode({ id, data, selected }) {
         {editing ? (
           <input
             autoFocus
-            value={data.label ?? ''}
+            value={label}
             onChange={(e) => data.onChange(id, e.target.value)}
             onBlur={() => setEditing(false)}
-            style={{ width: '100%' }}
+            style={{
+              width: '90%',
+              fontFamily: fontFamily,
+              fontWeight: 'normal',
+              fontSize: fontSize,
+              color: textColor,
+              border: '1px solid #ccc',
+              padding: 4,
+              borderRadius: 4,
+              background: '#fff',
+            }}
           />
         ) : (
-            <div
+          <div
             style={{
-                color: data.textColor || '#000',
-                fontSize: data.fontSize || 12,
-                fontWeight: selected ? 'bold' : 'normal',
-                fontFamily: data.fontFamily || "'Quicksand', 'Google Sans Code', sans-serif",
+              color: textColor,
+              fontSize: fontSize,
+              fontWeight: 'normal',
+              fontFamily: fontFamily,
+              textAlign: 'center',
+              width: '100%',
+              wordBreak: 'break-word',
             }}
-            >
-            {data.label}
-            </div>
-
+          >
+            {label}
+          </div>
         )}
 
         <Handle type="source" position={Position.Bottom} />
