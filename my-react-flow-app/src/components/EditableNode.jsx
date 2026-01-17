@@ -23,6 +23,8 @@ export default function EditableNode({ id, data, selected }) {
   const fontSize = data.fontSize ?? NODE_DEFAULTS.fontSize;
   const fontFamily = data.fontFamily ?? NODE_DEFAULTS.fontFamily;
 
+  const isValid = data.isValidConnection;
+
   return (
     <>
       {selected && !editing && <NodeResizer minWidth={120} minHeight={50} />}
@@ -44,7 +46,21 @@ export default function EditableNode({ id, data, selected }) {
         }}
         onDoubleClick={() => setEditing(true)}
       >
-        <Handle type="target" position={Position.Top} />
+        {/* TOP */}
+            <Handle type="target" position={Position.Top} id="t-t" isValidConnection={isValid} />
+            <Handle type="source" position={Position.Top} id="t-s" isValidConnection={isValid} />
+
+            {/* RIGHT */}
+            <Handle type="target" position={Position.Right} id="r-t" isValidConnection={isValid} />
+            <Handle type="source" position={Position.Right} id="r-s" isValidConnection={isValid} />
+
+            {/* BOTTOM */}
+            <Handle type="target" position={Position.Bottom} id="b-t" isValidConnection={isValid} />
+            <Handle type="source" position={Position.Bottom} id="b-s" isValidConnection={isValid} />
+
+            {/* LEFT */}
+            <Handle type="target" position={Position.Left} id="l-t" isValidConnection={isValid} />
+            <Handle type="source" position={Position.Left} id="l-s" isValidConnection={isValid} />
 
         {editing ? (
           <input
@@ -79,8 +95,6 @@ export default function EditableNode({ id, data, selected }) {
             {label}
           </div>
         )}
-
-        <Handle type="source" position={Position.Bottom} />
       </div>
     </>
   );

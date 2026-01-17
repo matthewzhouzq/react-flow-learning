@@ -33,12 +33,6 @@ const initialState = {
       position: { x: 0, y: 0 },
       data: { ...NODE_DEFAULTS, label: 'empty node' },
     },
-    {
-      id: 'n2',
-      type: 'editable',
-      position: { x: 0, y: 150 },
-      data: { ...NODE_DEFAULTS, label: 'empty node' },
-    },
   ],
   edges: [
     {
@@ -51,10 +45,10 @@ const initialState = {
 };
 
 function FlowInner() {
-  const { screenToFlowPosition } = useReactFlow(); // Add this line
+  const { screenToFlowPosition } = useReactFlow();
   const [state, { set, undo, redo, canUndo, canRedo }] = useUndo(initialState);
 
-  const { nodes, edges } = state.present;
+  const { nodes, edges } = state.present || { nodes: [], edges: [] };
 
   const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
@@ -126,14 +120,25 @@ function FlowInner() {
     });
   };
 
-  // DELETE NODE
-  const onDeleteNode = (nodeId = selectedNodeId) => {
-    if (!nodeId) return;
+  const onDeleteNode = (nodeId) => {
+    // If nodeId is an event object (from a button click), ignore it and use selectedNodeId
+    // If nodeId is a string (from context menu), use that string
+    const idToDelete = typeof nodeId === 'string' ? nodeId : selectedNodeId;
+    
+    if (!idToDelete) {
+      console.warn("No node ID found to delete");
+      return;
+    }
+
+    const currentNodes = state.present.nodes;
+    const currentEdges = state.present.edges;
+
     set({
-      nodes: nodes.filter((n) => n.id !== nodeId),
-      edges: edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+      nodes: currentNodes.filter((n) => n.id !== idToDelete),
+      edges: currentEdges.filter((e) => e.source !== idToDelete && e.target !== idToDelete),
     });
-    if (nodeId === selectedNodeId) setSelectedNodeId(null);
+
+    setSelectedNodeId(null);
   };
 
   const selectedNode = useMemo(
@@ -168,6 +173,22 @@ function FlowInner() {
       ...NODE_DEFAULTS,
       ...n.data,
       onChange: (id, value) => onNodeChange(id, value),
+      // Pass the existing edges down so the node can check them
+      isValidConnection: (connection) => {
+        // 1. Prevent connecting to the same side (your existing rule)
+        const sourceSide = connection.sourceHandle.split('-')[0];
+        const targetSide = connection.targetHandle.split('-')[0];
+        if (sourceSide === targetSide) return false;
+
+        // 2. Prevent duplicate connections between the same nodes
+        const edgeExists = edges.some(
+          (edge) =>
+            (edge.source === connection.source && edge.target === connection.target) ||
+            (edge.source === connection.target && edge.target === connection.source)
+        );
+
+        return !edgeExists;
+      },
     },
   }));
 
@@ -184,7 +205,12 @@ function FlowInner() {
 
   const handleNodeContextMenu = (event, node) => {
     event.preventDefault();
-    event.stopPropagation(); // <--- ADD THIS LINE
+    event.stopPropagation();
+    
+    // ADD THIS: Automatically select the node you right-clicked
+    setSelectedNodeId(node.id); 
+    setSelectedEdgeId(null);
+
     setContextMenu({
       visible: true,
       x: event.clientX,
@@ -196,7 +222,6 @@ function FlowInner() {
   const onAddNodeAtPosition = (clientX, clientY) => {
     const position = screenToFlowPosition({ x: clientX, y: clientY });
     
-    // Find the highest number in existing IDs to avoid duplicates
     const maxId = nodes.reduce((max, node) => {
       const num = parseInt(node.id.replace('n', ''));
       return num > max ? num : max;
@@ -204,6 +229,10 @@ function FlowInner() {
     
     const id = `n${maxId + 1}`;
     
+    // Update the selection state to the new ID right now
+    setSelectedNodeId(id); 
+    setSelectedEdgeId(null);
+
     set({
       nodes: [
         ...nodes,
@@ -211,12 +240,24 @@ function FlowInner() {
           id,
           type: 'editable',
           position,
+          // Ensure the node is marked as selected internally too
+          selected: true, 
           data: { ...NODE_DEFAULTS, label: 'empty node', onChange: onNodeChange },
         },
       ],
       edges,
     });
   };
+
+  const onSelectionChange = useCallback(({ nodes, edges }) => {
+    // If a node is selected, set it. Otherwise null.
+    const selectedNode = nodes[0];
+    setSelectedNodeId(selectedNode?.id || null);
+
+    // If an edge is selected, set it. Otherwise null.
+    const selectedEdge = edges[0];
+    setSelectedEdgeId(selectedEdge?.id || null);
+  }, []);
 
   // UNDO/REDO
   useEffect(() => {
@@ -227,11 +268,6 @@ function FlowInner() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
-
-  useEffect(() => {
-    console.log('Nodes:', nodes);
-    console.log('Edges:', edges);
-  }, [nodes, edges]);
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
@@ -246,29 +282,23 @@ function FlowInner() {
       />
 
     <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
-      <ReactFlow
-        nodes={nodesWithHandlers}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeClick={(_, node) => {
-          setSelectedNodeId(node.id);
-          setSelectedEdgeId(null);
-        }}
-        onEdgeClick={(_, edge) => {
-          setSelectedEdgeId(edge.id);
-          setSelectedNodeId(null);
-        }}
-        onNodeContextMenu={handleNodeContextMenu}
-        onPaneContextMenu={handleContextMenu} // Changed from onContextMenu
-        fitView
-      >
-        <Controls />
-        <MiniMap />
-        <Background gap={12} size={1} />
-      </ReactFlow>
+    <ReactFlow
+      nodes={nodesWithHandlers}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      // This one line replaces 3 different click handlers
+      onSelectionChange={onSelectionChange} 
+      onNodeContextMenu={handleNodeContextMenu}
+      onPaneContextMenu={handleContextMenu}
+      fitView
+    >
+      <Controls />
+      <MiniMap />
+      <Background gap={12} size={1} />
+    </ReactFlow>
     </div>
 
       <NodeInspector node={selectedNode} updateNode={updateSelectedNode} />

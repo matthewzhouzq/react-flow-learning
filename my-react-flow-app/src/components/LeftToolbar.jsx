@@ -26,31 +26,41 @@ export default function LeftToolbar({
     >
       <button onClick={onAdd}>➕ Add Node</button>
 
-      <button onClick={onDelete} disabled={!canDelete}>
+        <button 
+            onClick={onDelete} 
+            disabled={!canDelete}
+            style={{
+                cursor: canDelete ? 'pointer' : 'not-allowed',
+                opacity: canDelete ? 1 : 0.5,
+                border: '1px solid #ddd',
+                padding: '4px 8px',
+                borderRadius: '4px'
+            }}
+        >
         🗑 Delete Node
-      </button>
+        </button>
 
-      <button onClick={onUndo} disabled={!canUndo}>
-        ↩ Undo
-      </button>
+        <button onClick={onUndo} disabled={!canUndo}>
+            ↩ Undo
+        </button>
 
-      <button onClick={onRedo} disabled={!canRedo}>
-        ↪ Redo
-      </button>
+        <button onClick={onRedo} disabled={!canRedo}>
+            ↪ Redo
+        </button>
 
-      <button
-        onClick={() => {
-          /*
-            AI SUGGESTION PLACEHOLDER
+        <button
+            onClick={() => {
+            /*
+                AI SUGGESTION PLACEHOLDER
 
-            fetch('http://localhost:8000/ai/suggest', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ nodes, edges }),
-            })
-          */
-        }}
-      >
+                fetch('http://localhost:8000/ai/suggest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodes, edges }),
+                })
+            */
+            }}
+        >
         AI Suggest
       </button>
     </div>
